@@ -238,9 +238,7 @@ def fcos_make_centerness_targets(deltas: torch.Tensor):
     centerness = None
     l, t, r, b = deltas[:, 0], deltas[:, 1], deltas[:, 2], deltas[:, 3]
     centerness = torch.sqrt(
-        (torch.min(l, r) * torch.min(t, b))
-        / (torch.max(l, r) * torch.max(t, b))
-    )
+        (torch.min(l, r) * torch.min(t, b)) / (torch.max(l, r) * torch.max(t, b)))
     centerness = torch.where((l == -1) & (t == -1) & (r == -1) & (b == -1), -1 * torch.ones_like(centerness), centerness)
     ##########################################################################
     #                             END OF YOUR CODE                           #

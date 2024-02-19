@@ -370,13 +370,17 @@ class FCOS(nn.Module):
         # Calculate GT deltas for these matched boxes. Similar structure
         # as `matched_gt_boxes` above. Fill this list:
         matched_gt_deltas = []
+        matched_gt_cent = []
         # Replace "pass" statement with your code
         for i in range(images.shape[0]):    # for all images
-            dic = {}
+            cent_dic, delta_dic = {}, {}
             for level, boxes in matched_gt_boxes[i].items():
                 # print(locations_per_fpn_level[level])
-                dic[level] = fcos_get_deltas_from_locations(locations_per_fpn_level[level], boxes, self.backbone.fpn_strides[level])
-            matched_gt_deltas.append(dic)
+                delta = fcos_get_deltas_from_locations(locations_per_fpn_level[level], boxes, self.backbone.fpn_strides[level])
+                delta_dic[level] = delta
+                cent_dic[level] = fcos_make_centerness_targets(delta)
+            matched_gt_deltas.append(delta_dic)
+            matched_gt_cent.append(cent_dic)
         ######################################################################
         #                           END OF YOUR CODE                         #
         ######################################################################
@@ -386,11 +390,13 @@ class FCOS(nn.Module):
         # tensors of shape (batch_size, locations_per_fpn_level, 5 or 4)
         matched_gt_boxes = default_collate(matched_gt_boxes)
         matched_gt_deltas = default_collate(matched_gt_deltas)
+        matched_gt_cent = default_collate(matched_gt_cent)
 
         # Combine predictions and GT from across all FPN levels.
         # shape: (batch_size, num_locations_across_fpn_levels, ...)
         matched_gt_boxes = self._cat_across_fpn_levels(matched_gt_boxes)
         matched_gt_deltas = self._cat_across_fpn_levels(matched_gt_deltas)
+        matched_gt_cent = self._cat_across_fpn_levels(matched_gt_cent)
         pred_cls_logits = self._cat_across_fpn_levels(pred_cls_logits)
         pred_boxreg_deltas = self._cat_across_fpn_levels(pred_boxreg_deltas)
         pred_ctr_logits = self._cat_across_fpn_levels(pred_ctr_logits)
@@ -410,19 +416,24 @@ class FCOS(nn.Module):
         gt_classes = matched_gt_boxes[:,:,4]
         gt_classes[gt_classes == -1] = 0
         gt_one_hot = F.one_hot(gt_classes.long(), num_classes=self.num_classes).float()
-        mask = (gt_classes != -1).float()
+        mask = (gt_classes != -1).float().unsqueeze(2)
 
         # print(pred_cls_logits.shape, gt_one_hot.shape)
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_one_hot)
-        loss_cls = loss_cls * mask.unsqueeze(2)
+        loss_cls = loss_cls * mask
+        # print(matched_gt_cent.shape, pred_ctr_logits.shape)
 
         # print(pred_ctr_logits)
         loss_box = F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
-        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits, gt_classes.unsqueeze(2), reduction="none")
+        loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits, matched_gt_cent.unsqueeze(2), reduction="none")
+        # print(loss_ctr)
         
-        loss_box[matched_gt_deltas < 0] = 0
-        loss_ctr[matched_gt_boxes[:, :, 4] < 0] = 0
+        # loss_box[matched_gt_deltas < 0] = 0
+        # loss_ctr[matched_gt_boxes[:, :, 4] < 0] = 0
+        loss_box *= mask
+        loss_ctr *= mask
+        # print(loss_ctr)
 
 
         ######################################################################
