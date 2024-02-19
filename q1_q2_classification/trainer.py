@@ -34,6 +34,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
     model = model.to(args.device)
 
     cnt = 0
+    prev_map = 0
 
     for epoch in range(args.epochs):
         for batch_idx, (data, target, wgt) in enumerate(train_loader):
@@ -53,7 +54,17 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             # Function Outputs:
             #   - `output`: Computed loss, a single floating point number
             ##################################################################
-            loss = 0
+            
+            loss = torch.nn.BCEWithLogitsLoss(reduction='none')(output, target)
+            loss = torch.mean(loss * wgt)
+            
+            # output = torch.sigmoid(output)
+            # output = torch.clamp(output, 1e-7, 1-1e-7)
+            # loss = -(target * torch.log(output) + (1 - target) * torch.log(1 - output))
+            # loss = torch.mean(loss * wgt)
+
+
+
             ##################################################################
             #                          END OF YOUR CODE                      #
             ##################################################################
@@ -81,12 +92,21 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             
             cnt += 1
 
+        model.eval()
+        ap, map = utils.eval_dataset_map(model, args.device, test_loader)    
+        writer.add_scalar("map", map, epoch)
+        print(f"Epoch {epoch} finished: Loss: {loss.item()} / map: {map}") 
+        model.train()
+
         if scheduler is not None:
             scheduler.step()
             writer.add_scalar("learning_rate", scheduler.get_last_lr()[0], cnt)
 
         # save model
-        if save_this_epoch(args, epoch):
+        # if save_this_epoch(args, epoch):
+        #     save_model(epoch, model_name, model)
+        if map > prev_map:
+            prev_map = map
             save_model(epoch, model_name, model)
 
     # Validation iteration
