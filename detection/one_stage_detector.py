@@ -112,13 +112,13 @@ class DetectorBackboneWithFPN(nn.Module):
         fpn_feats["p5"] = p5
 
         c4_lat = self.fpn_params["lateral_c4"](backbone_feats["c4"])
-        c5_up = F.interpolate(c5_lat, scale_factor=2, mode="nearest")
-        p4 = self.fpn_params["out_c4"](c4_lat + c5_up)
+        feat4 = c4_lat + F.interpolate(c5_lat, scale_factor=2, mode="nearest")
+        p4 = self.fpn_params["out_c4"](feat4)
         fpn_feats["p4"] = p4
 
         c3_lat = self.fpn_params["lateral_c3"](backbone_feats["c3"])
-        c4_up = F.interpolate(c4_lat, scale_factor=2, mode="nearest")
-        p3 = self.fpn_params["out_c3"](c3_lat + c4_up)
+        feat3 = c3_lat + F.interpolate(feat4, scale_factor=2, mode="nearest")
+        p3 = self.fpn_params["out_c3"](feat3)
         fpn_feats["p3"] = p3
         ######################################################################
         #                            END OF YOUR CODE                        #
@@ -413,11 +413,16 @@ class FCOS(nn.Module):
         ######################################################################
         # Feel free to delete this line: (but keep variable names same)
         loss_cls, loss_box, loss_ctr = None, None, None
-        gt_classes = matched_gt_boxes[:,:,4]
-        gt_classes[gt_classes == -1] = 0
-        gt_one_hot = F.one_hot(gt_classes.long(), num_classes=self.num_classes).float()
-        mask = (gt_classes != -1).float().unsqueeze(2)
+        gt_classes = matched_gt_boxes[:,:,4].view(-1)
+        pred_cls_logits = pred_cls_logits.view(-1, self.num_classes)
+        # gt_classes[gt_classes == -1] = 0
+        
+        # mask = (gt_classes != -1).float().unsqueeze(2)
+        valid_cls = gt_classes != -1
 
+        gt_classes = gt_classes[valid_cls].type(torch.int64)
+        pred_cls_logits = pred_cls_logits[valid_cls]
+        gt_one_hot = F.one_hot(gt_classes.long(), num_classes=self.num_classes).float()
         # print(pred_cls_logits.shape, gt_one_hot.shape)
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_one_hot)
@@ -540,16 +545,19 @@ class FCOS(nn.Module):
             # Step 1:
             # Replace "pass" statement with your code
             level_pred_scores, level_pred_classes = level_pred_scores.max(dim=1)
+            # pass
             
             # Step 2:
             # Replace "pass" statement with your code
             keep = level_pred_scores > test_score_thresh
             level_pred_scores = level_pred_scores[keep]
             level_pred_classes = level_pred_classes[keep]
+            # pass
 
             # Step 3:
             # Replace "pass" statement with your code
             level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[keep], level_locations[keep], self.backbone.fpn_strides[level_name])
+            # pass
 
             # Step 4: Use `images` to get (height, width) for clipping.
             # Replace "pass" statement with your code
@@ -558,6 +566,7 @@ class FCOS(nn.Module):
             level_pred_boxes[:, 1] = torch.clamp(level_pred_boxes[:, 1], 0, H)
             level_pred_boxes[:, 2] = torch.clamp(level_pred_boxes[:, 2], 0, W)
             level_pred_boxes[:, 3] = torch.clamp(level_pred_boxes[:, 3], 0, H)
+            # pass
 
             ##################################################################
             #                          END OF YOUR CODE                      #

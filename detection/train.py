@@ -51,7 +51,7 @@ class HyperParameters:
     batch_size: int = BATCH_SIZE
     num_workers: int = NUM_WORKERS
     image_shape: tuple = IMAGE_SHAPE
-    lr: float = 1e-4
+    lr: float = 5e-5 #1e-4
     log_period: int = 100
     max_iters: int = 9000
     device: str = DEVICE
