@@ -425,14 +425,14 @@ class FCOS(nn.Module):
         # print(matched_gt_cent.shape, pred_ctr_logits.shape)
 
         # print(pred_ctr_logits)
-        loss_box = F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
+        loss_box = 0.25 *  F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
         loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits, matched_gt_cent.unsqueeze(2), reduction="none")
         # print(loss_ctr)
         
-        # loss_box[matched_gt_deltas < 0] = 0
-        # loss_ctr[matched_gt_boxes[:, :, 4] < 0] = 0
-        loss_box *= mask
-        loss_ctr *= mask
+        loss_box[matched_gt_deltas < 0] *= 0
+        loss_ctr[matched_gt_boxes[:, :, 4] < 0] *= 0
+        # loss_box *= mask
+        # loss_ctr *= mask
         # print(loss_ctr)
 
 
