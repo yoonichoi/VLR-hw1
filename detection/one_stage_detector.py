@@ -421,16 +421,24 @@ class FCOS(nn.Module):
         # print(pred_cls_logits.shape, gt_one_hot.shape)
 
         loss_cls = sigmoid_focal_loss(pred_cls_logits, gt_one_hot)
-        loss_cls = loss_cls * mask
-        # print(matched_gt_cent.shape, pred_ctr_logits.shape)
+        # loss_cls = loss_cls * mask
 
         # print(pred_ctr_logits)
+        # print('######## below is pred ctr logits #######')
+        # print(pred_ctr_logits)
+        # print('######## below is GT cent########')
+        # print(matched_gt_cent)
+        # print('######## below is loss_ctr ########')
         loss_box = 0.25 *  F.l1_loss(pred_boxreg_deltas, matched_gt_deltas, reduction="none")
         loss_ctr = F.binary_cross_entropy_with_logits(pred_ctr_logits, matched_gt_cent.unsqueeze(2), reduction="none")
         # print(loss_ctr)
         
         loss_box[matched_gt_deltas < 0] *= 0
-        loss_ctr[matched_gt_boxes[:, :, 4] < 0] *= 0
+        # print('######## below is MASKED loss_ctr ########')
+        
+        # loss_ctr[matched_gt_boxes[:, :, 4] < 0] *= 0
+        loss_ctr[matched_gt_cent == -1] = 0
+        # print(loss_ctr)
         # loss_box *= mask
         # loss_ctr *= mask
         # print(loss_ctr)
@@ -541,7 +549,7 @@ class FCOS(nn.Module):
 
             # Step 3:
             # Replace "pass" statement with your code
-            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[keep], level_locations[keep], self.backbone.fpn_strides()[level_name])
+            level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[keep], level_locations[keep], self.backbone.fpn_strides[level_name])
 
             # Step 4: Use `images` to get (height, width) for clipping.
             # Replace "pass" statement with your code
