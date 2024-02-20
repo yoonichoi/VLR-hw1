@@ -215,13 +215,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--visualize_gt", action="store_true")
     parser.add_argument(
-        "--overfit", type=bool, default=True
+        "--overfit", action="store_true"
     )
     parser.add_argument(
-        "--inference", type=bool, default=False
+        "--inference", action="store_true"
     )
     parser.add_argument(
-        "--test_inference", type=bool, default=False
+        "--test_inference", action="store_true"
     )
     args = parser.parse_args()
     print(args.test_inference)
