@@ -51,7 +51,7 @@ class HyperParameters:
     batch_size: int = BATCH_SIZE
     num_workers: int = NUM_WORKERS
     image_shape: tuple = IMAGE_SHAPE
-    lr: float = 5e-5 #1e-4
+    lr: float = 1e-4
     log_period: int = 100
     max_iters: int = 9000
     device: str = DEVICE
@@ -156,7 +156,7 @@ def main(args):
         return
     
     print("Training model...")
-    if not args.visualize_gt:
+    if args.train and not args.visualize_gt:
         train_model(detector, train_loader, hyperparams, overfit=args.overfit)
     # print("Training complete! Saving loss curve to loss.png...")
     print("Training complete!")
@@ -172,7 +172,7 @@ def main(args):
             small_dataset, batch_size=1, pin_memory=True, num_workers=NUM_WORKERS
         )
         # Modify this depending on where you save your weights.
-        weights_path = os.path.join(".", "fcos_detector.pt")
+        weights_path = os.path.join(".", args.weights)
 
         # Re-initialize so this cell is independent from prior cells.
         detector = FCOS(
@@ -194,7 +194,7 @@ def main(args):
         print("Running inference and computing mAP...")
         assert os.path.exists("mAP")
         # Modify this depending on where you save your weights.
-        weights_path = os.path.join(".", "fcos_detector.pt")
+        weights_path = os.path.join(".", args.weights)
         detector.to(device=DEVICE)
         detector.load_state_dict(torch.load(weights_path, map_location="cpu"))
         inference_with_detector(
@@ -222,6 +222,12 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--test_inference", action="store_true"
+    )
+    parser.add_argument(
+        "--train", action="store_true"
+    )
+    parser.add_argument(
+        "--weights", default="fcos_detector.pt"
     )
     args = parser.parse_args()
     print(args.test_inference)

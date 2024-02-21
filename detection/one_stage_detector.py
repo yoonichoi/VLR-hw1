@@ -556,6 +556,7 @@ class FCOS(nn.Module):
 
             # Step 3:
             # Replace "pass" statement with your code
+            level_locations = level_locations.to(level_deltas.device)
             level_pred_boxes = fcos_apply_deltas_to_locations(level_deltas[keep], level_locations[keep], self.backbone.fpn_strides[level_name])
             # pass
 
