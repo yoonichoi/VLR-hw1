@@ -117,7 +117,7 @@ class DetectorBackboneWithFPN(nn.Module):
         fpn_feats["p4"] = p4
 
         c3_lat = self.fpn_params["lateral_c3"](backbone_feats["c3"])
-        feat3 = c3_lat + F.interpolate(feat4, scale_factor=2, mode="nearest")
+        feat3 = c3_lat + F.interpolate(c4_lat, scale_factor=2, mode="nearest")
         p3 = self.fpn_params["out_c3"](feat3)
         fpn_feats["p3"] = p3
         ######################################################################
